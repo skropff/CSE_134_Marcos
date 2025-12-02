@@ -38,6 +38,7 @@ struct timer_mutex_node {
   // struct lock mutex2;
   struct timer_mutex_node *before;
   struct timer_mutex_node *next;
+  int64_t wake_up;
 };
 
 struct timer_mutex_node *head = NULL;
@@ -108,15 +109,15 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   intr_disable();
   struct timer_mutex_node *current;
-  struct lock **list;
+  //struct lock **list;
   int amount_reserved;
   amount_reserved = 2;
   int amount_used;
   amount_used = 0;
   // list = (struct lock **) malloc(2 * sizeof(struct lock *));
   current = head;
-  bool success;
-  int success1;
+  // bool success;
+  // int success1;
   while (current != NULL) {
     intr_enable();
     success = lock_try_acquire(&(current->mutex1));
@@ -136,6 +137,7 @@ timer_sleep (int64_t ticks)
   intr_enable();
   intr_disable(); //Entering critical section. 
   if (timer_elapsed(start) < ticks) {
+     intr_disable();
       if (head == NULL) {
         head = (struct timer_mutex_node *) calloc(1, sizeof(struct timer_mutex_node));
         tail = head;
@@ -146,14 +148,16 @@ timer_sleep (int64_t ticks)
         tail = tail->next;
       }
       mine = tail;
-      lock_init(&(tail->mutex1));
-      lock_init(&(tail->mutex2));
-  }
-  intr_enable(); //Exiting critical section. 
-  while (timer_elapsed (start) < ticks) {
-    lock_acquire(&(mine->mutex2));
+      // lock_init(&(tail->mutex1));
+      // lock_init(&(tail->mutex2));
+     intr_enable();
+  } //Exiting critical section. 
+   /*
+  if (timer_elapsed(start) < ticks) {
+    sema_init(); //lock_acquire(&(mine->mutex2));
     lock_release(&(mine->mutex2));
   }
+  */
   lock_acquire(&(mine->mutex1));
   lock_release(&(mine->mutex2));
   intr_disable(); //Entering another critical section. 
