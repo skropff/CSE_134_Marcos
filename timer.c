@@ -132,6 +132,7 @@ timer_sleep (int64_t ticks)
       // lock_init(&(tail->mutex1));
       // lock_init(&(tail->mutex2));
      intr_enable();
+     sema_down(&(mine->sem));
   } 
    //Exiting critical section. 
    /*
@@ -263,7 +264,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     current = current->next;
   } //Entering critical section. 
   ticks++;
-  thread_tick ();
+  thread_tick();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
