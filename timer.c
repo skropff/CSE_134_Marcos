@@ -34,8 +34,8 @@ static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
 struct timer_mutex_node {
-  struct lock mutex1;
-  struct lock mutex2;
+  struct semaphore sem; // struct lock mutex1;
+  // struct lock mutex2;
   struct timer_mutex_node *before;
   struct timer_mutex_node *next;
 };
@@ -113,7 +113,7 @@ timer_sleep (int64_t ticks)
   amount_reserved = 2;
   int amount_used;
   amount_used = 0;
-  list = (struct lock **) malloc(2 * sizeof(struct lock *));
+  // list = (struct lock **) malloc(2 * sizeof(struct lock *));
   current = head;
   bool success;
   int success1;
