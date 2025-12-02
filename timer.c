@@ -240,6 +240,7 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  timer_mutex_node *current;
   current = head;
   // bool success;
   // int success1;
