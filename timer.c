@@ -105,6 +105,7 @@ timer_sleep (int64_t ticks)
 {
   int64_t start = timer_ticks();
   struct timer_mutex_node *mine;
+   mine = NULL;
   ASSERT (intr_get_level () == INTR_ON);
   struct timer_mutex_node *current;
   //struct lock **list;
@@ -143,21 +144,22 @@ timer_sleep (int64_t ticks)
   */
   //lock_acquire(&(mine->mutex1));
   //lock_release(&(mine->mutex2));
-   
-  intr_disable(); //Entering another critical section. 
-  if (mine->before != NULL) {
-    (mine->before)->next = mine->next;
-  }
-  else {
-    head = mine->next;
-  }
-  if (mine->next != NULL) {
-    (mine->next)->before = mine->before;
-  }
-  else {
-    tail = mine->before;
-  }
-  intr_enable();
+ if (mine != NULL)  {
+     intr_disable(); //Entering another critical section. 
+     if (mine->before != NULL) {
+       (mine->before)->next = mine->next;
+     }
+     else {
+       head = mine->next;
+     }
+     if (mine->next != NULL) {
+       (mine->next)->before = mine->before;
+     }
+     else {
+       tail = mine->before;
+     }
+     intr_enable();
+ }
   free(mine);
    /*
   for (int i = 0; i < amount_used; i = i + 1) {
