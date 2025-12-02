@@ -103,39 +103,18 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  printf("begin");
-  int64_t start = timer_ticks ();
+  int64_t start = timer_ticks();
   struct timer_mutex_node *mine;
   ASSERT (intr_get_level () == INTR_ON);
-  intr_disable();
   struct timer_mutex_node *current;
   //struct lock **list;
+/*
   int amount_reserved;
   amount_reserved = 2;
   int amount_used;
   amount_used = 0;
+*/
   // list = (struct lock **) malloc(2 * sizeof(struct lock *));
-  current = head;
-  // bool success;
-  // int success1;
-  while (current != NULL) {
-    intr_enable();
-    success = lock_try_acquire(&(current->mutex1));
-    if (success == true) {
-      lock_acquire(&(current->mutex2));
-      list[amount_used] = &(current->mutex1);
-      list[amount_used + 1] =  &(current->mutex2);
-      amount_used = amount_used + 2;
-      if (amount_used == amount_reserved) {
-        amount_reserved = amount_reserved * 2;
-        list = (struct lock **) realloc(list, amount_reserved * sizeof(struct lock *));
-      }
-    }
-    intr_disable();
-    current = current->next;
-  }
-  intr_enable();
-  intr_disable(); //Entering critical section. 
   if (timer_elapsed(start) < ticks) {
      intr_disable();
       if (head == NULL) {
@@ -148,18 +127,22 @@ timer_sleep (int64_t ticks)
         tail = tail->next;
       }
       mine = tail;
+      mine->wake_up = ticks + start;
+      sema_init(&(mine->sem), 1);
       // lock_init(&(tail->mutex1));
       // lock_init(&(tail->mutex2));
      intr_enable();
-  } //Exiting critical section. 
+  } 
+   //Exiting critical section. 
    /*
   if (timer_elapsed(start) < ticks) {
     sema_init(); //lock_acquire(&(mine->mutex2));
     lock_release(&(mine->mutex2));
   }
   */
-  lock_acquire(&(mine->mutex1));
-  lock_release(&(mine->mutex2));
+  //lock_acquire(&(mine->mutex1));
+  //lock_release(&(mine->mutex2));
+   
   intr_disable(); //Entering another critical section. 
   if (mine->before != NULL) {
     (mine->before)->next = mine->next;
@@ -175,10 +158,11 @@ timer_sleep (int64_t ticks)
   }
   intr_enable();
   free(mine);
+   /*
   for (int i = 0; i < amount_used; i = i + 1) {
     lock_release(list[i]);
   }
-  printf("end");
+  */
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -255,6 +239,29 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  current = head;
+  // bool success;
+  // int success1;
+  while (current != NULL) {
+    //success = lock_try_acquire(&(current->mutex1));
+   /*
+    if (success == true) {
+      lock_acquire(&(current->mutex2));
+      list[amount_used] = &(current->mutex1);
+      list[amount_used + 1] =  &(current->mutex2);
+      amount_used = amount_used + 2;
+      if (amount_used == amount_reserved) {
+        amount_reserved = amount_reserved * 2;
+        list = (struct lock **) realloc(list, amount_reserved * sizeof(struct lock *));
+      }
+    }
+    */
+     if (ticks >= current->wake_up) {
+         sema_up(&(current->sem));
+         break;
+     }
+    current = current->next;
+  } //Entering critical section. 
   ticks++;
   thread_tick ();
 }
